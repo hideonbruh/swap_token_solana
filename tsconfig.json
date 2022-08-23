@@ -9,6 +9,10 @@
     "declaration": true,
     "declarationMap": true,
     "resolveJsonModule": true,
+    "moduleResolution": "node",
     "esModuleInterop": true
-  }
+  },
+  "include": [
+    "tests/*.ts"
+  ]
 }
