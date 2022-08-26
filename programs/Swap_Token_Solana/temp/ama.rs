@@ -121,3 +121,36 @@ pub struct CurveInput {
     //     // Execute anchor's helper function to transfer tokens
     //     anchor_spl::token::transfer(cpi_ctx, 5)?;
     // }
+
+    #[derive(Accounts)]
+pub struct SwapPool<'info> {
+    pub token_program: Program<'info, Token>,
+    /// CHECK: This is the token that we want to mint
+    #[account(mut)]
+    pub mint_pool: AccountInfo<'info>,
+    /// CHECK: Safe
+    #[account(mut)]
+    pub source_info: AccountInfo<'info>,
+    /// CHECK: Safe
+    #[account(mut)]
+    pub destination_info: AccountInfo<'info>,
+    /// CHECK: The associated token account that we are transferring the token to
+    #[account(mut)]
+    pub user: AccountInfo<'info>,
+    // the authority of the from account 
+    pub from_authority: Signer<'info>,
+}
+
+
+#[derive(Accounts)]
+pub struct SwapToken<'info> {
+    pub token_program: Program<'info, Token>,
+    /// CHECK: The associated token account that we are transferring the token from
+    #[account(mut)]
+    pub from: UncheckedAccount<'info>,
+    /// CHECK: The associated token account that we are transferring the token to
+    #[account(mut)]
+    pub to: AccountInfo<'info>,
+    // the authority of the from account 
+    pub from_authority: Signer<'info>,
+}

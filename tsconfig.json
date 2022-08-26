@@ -10,9 +10,7 @@
     "declarationMap": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
+    "noImplicitAny": false,
     "esModuleInterop": true
-  },
-  "include": [
-    "tests/*.ts"
-  ]
+  }
 }

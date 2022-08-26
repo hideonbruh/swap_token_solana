@@ -1,8 +1,19 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token;
-use anchor_spl::token::{Token, MintTo, Mint, Transfer, TokenAccount};
-
-
+use anchor_spl::token::{Token, MintTo, Transfer, Approve};
+// use crate::{
+//     error::BinaryOptionError,
+//     instruction::BinaryOptionInstruction,
+//     spl_utils::{
+//         spl_approve, spl_burn, spl_burn_signed, spl_initialize, spl_mint_initialize, spl_mint_to,
+//         spl_set_authority, spl_token_transfer, spl_token_transfer_signed,
+//     },
+//     state::BinaryOption,
+//     system_utils::{create_new_account, create_or_allocate_account_raw},
+//     validation_utils::{
+//         assert_initialized, assert_keys_equal, assert_keys_unequal, assert_owned_by,
+//     },
+// };
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
@@ -45,37 +56,49 @@ pub mod swap_token_solana {
         Ok(())
     }
 
-    pub fn swap_token(ctx: Context<SwapPool>, amount_in: u64, fee_pool: u64) -> Result<()>{
+        let approve_instruction = Approve{
+            to: ctx.accounts.to.to_account_info(),
+            delegate: ctx.accounts.delegate.to_account_info(),
+            authority: ctx.accounts.authority.to_account_info(),
+        };
+         
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new(cpi_program, approve_instruction);
+
+        anchor_spl::token::approve(cpi_ctx, amount_in)?;
+        Ok(())
+    }
+
+    pub fn swap_token(ctx: Context<PoolToken>, amount_in: u64) -> Result<()>{
         let fixed_rate = 80;
         let amount_out = amount_in*fixed_rate/100;
 
-        //Transfer token A to Mint Pool
         let transfer_instruction = Transfer{
-            from: ctx.accounts.user.to_account_info(),
-            to: ctx.accounts.mint_pool.to_account_info(),
+            from: ctx.accounts.ata_source_user_a.to_account_info(),
+            to: ctx.accounts.ata_pool_token_a.to_account_info(),
             authority: ctx.accounts.from_authority.to_account_info(),
         };
-        let cpi_program_a = ctx.accounts.source_info.to_account_info();
+         
+        let cpi_program = ctx.accounts.token_program.to_account_info();
         // Create the Context for our Transfer request
-        let cpi_ctx_a = CpiContext::new(cpi_program_a, transfer_instruction);
+        let cpi_ctx = CpiContext::new(cpi_program, transfer_instruction);
 
         // Execute anchor's helper function to transfer tokens
-        anchor_spl::token::transfer(cpi_ctx_a, amount_in)?;
+        anchor_spl::token::transfer(cpi_ctx, amount_in)?;
 
-        //Transfer token B to Mint Pool
-        let transfer_instruction = Transfer{
-            from: ctx.accounts.mint_pool.to_account_info(),
-            to: ctx.accounts.user.to_account_info(),
-            authority: ctx.accounts.from_authority.to_account_info(),
+        let transfer_instruction2 = Transfer{
+            from: ctx.accounts.ata_pool_token_b.to_account_info(),
+            to: ctx.accounts.ata_source_user_b.to_account_info(),
+            authority: ctx.accounts.authority.to_account_info(),
         };
-        let cpi_program_b = ctx.accounts.destination_info.to_account_info();
+         
+        let cpi_program2 = ctx.accounts.token_program.to_account_info();
         // Create the Context for our Transfer request
-        let cpi_ctx_b = CpiContext::new(cpi_program_b, transfer_instruction);
+        let cpi_ctx2 = CpiContext::new(cpi_program2, transfer_instruction2);
 
         // Execute anchor's helper function to transfer tokens
-        anchor_spl::token::transfer(cpi_ctx_b, amount_out)?;
-        
-
+        anchor_spl::token::transfer(cpi_ctx2, amount_out)?;
+ 
         Ok(())
     }    
 
@@ -96,6 +119,20 @@ pub struct MintToken<'info> {
 }
 
 #[derive(Accounts)]
+pub struct ApproveToken<'info> {
+    pub token_program: Program<'info, Token>,
+    /// CHECK: This is the token that we want to mint
+    #[account(mut)]
+    pub to: AccountInfo<'info>,
+    /// CHECK: This is the token that we want to mint
+    #[account(mut)]
+    pub delegate: AccountInfo<'info>,
+    /// CHECK: This is the token that we want to mint
+    #[account(mut)]
+    pub authority: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
 pub struct TransferToken<'info> {
     pub token_program: Program<'info, Token>,
     /// CHECK: The associated token account that we are transferring the token from
@@ -109,20 +146,35 @@ pub struct TransferToken<'info> {
 }
 
 #[derive(Accounts)]
-pub struct SwapPool<'info> {
-    /// CHECK: This is the token that we want to mint
+pub struct PoolToken<'info> {
+    pub token_program: Program<'info, Token>,
+    /// CHECK: The associated token account that we are transferring the token from
     #[account(mut)]
-    pub mint_pool: AccountInfo<'info>,
-    /// CHECK: Safe
+    pub ata_pool_token_a: AccountInfo<'info>,
+    /// CHECK: The associated token account that we are transferring the token from
     #[account(mut)]
-    pub source_info: AccountInfo<'info>,
-    /// CHECK: Safe
+    pub ata_pool_token_b: AccountInfo<'info>,
+    /// CHECK: The associated token account that we are transferring the token from
     #[account(mut)]
-    pub destination_info: AccountInfo<'info>,
+    pub ata_source_user_a: AccountInfo<'info>,
     /// CHECK: The associated token account that we are transferring the token to
     #[account(mut)]
-    pub user: AccountInfo<'info>,
-    pub from_authority: Signer<'info>,
+    pub ata_source_user_b: AccountInfo<'info>,
+    // the authority of the from account 
+    pub from_authority: Signer<'info>, 
+    pub authority: Signer<'info>,
+}
+
+#[account]
+pub struct Multisig {
+    pub nonce: u8,
+    pub signer_nonce: u8,
+    pub max_user_count: u16,
+    pub owners: Vec<Pubkey>,
+    pub vote_powers: Vec<u16>,
+    pub required_vote: u16,
+    pub total_vote: u16,
+    pub request_id: u32,
 }
 
 
