@@ -63,6 +63,7 @@ var anchor = __importStar(require("@project-serum/anchor"));
 var spl_token_1 = require("@solana/spl-token");
 var chai_1 = require("chai");
 var BN = anchor.BN;
+var lamports = 0;
 describe("Test Mint Token Solana", function () {
     // Configure the client to use the local cluster.
     var provider = anchor.AnchorProvider.env();
@@ -73,15 +74,16 @@ describe("Test Mint Token Solana", function () {
     // Generate a random keypair that will represent our token
     var arrTokenKey = [];
     var otherUser = anchor.web3.Keypair.generate();
-    var mintPool = anchor.web3.Keypair.generate();
-    var tokenKey = anchor.web3.Keypair.generate();
-    var tokenKey2 = anchor.web3.Keypair.generate();
+    var userTransferAuthority = anchor.web3.Keypair.generate();
+    var addTokenA = anchor.web3.Keypair.generate();
+    var addTokenB = anchor.web3.Keypair.generate();
+    var poolWallet = anchor.web3.Keypair.generate();
     // AssociatedTokenAccount for anchor's workspace wallet
-    var associatedTokenAccount = undefined;
-    var associatedTokenAccount2 = undefined;
-    var associatedTokenAccountToMintPool = undefined;
+    var associatedTokenAccountTokenA = undefined;
+    var associatedTokenAccountTokenB = undefined;
+    var associatedTokenAccountTokenAToMintPool = undefined;
     it("Mint a token", function () { return __awaiter(void 0, void 0, void 0, function () {
-        var owner, ownerKey, lamports, mint_tx, mint_tx2, res, res2, minted, minted2;
+        var owner, ownerKey, mint_tx, mint_tx2, res, res2, minted, minted2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -90,83 +92,83 @@ describe("Test Mint Token Solana", function () {
                     console.log("Onwer public key:" + ownerKey);
                     return [4 /*yield*/, program.provider.connection.getMinimumBalanceForRentExemption(spl_token_1.MINT_SIZE)];
                 case 1:
+                    // Get the amount of SOL needed to pay rent for our Token Mint
                     lamports = _a.sent();
                     console.log("MINT_SIZE: " + spl_token_1.MINT_SIZE);
-                    return [4 /*yield*/, (0, spl_token_1.getAssociatedTokenAddress)(tokenKey.publicKey, ownerKey)];
+                    return [4 /*yield*/, (0, spl_token_1.getAssociatedTokenAddress)(addTokenA.publicKey, ownerKey)];
                 case 2:
                     // Get the ATA for a token and the account that we want to own the ATA (but it might not existing on the SOL network yet)
-                    associatedTokenAccount = _a.sent();
-                    return [4 /*yield*/, (0, spl_token_1.getAssociatedTokenAddress)(tokenKey2.publicKey, ownerKey)];
+                    associatedTokenAccountTokenA = _a.sent();
+                    return [4 /*yield*/, (0, spl_token_1.getAssociatedTokenAddress)(addTokenB.publicKey, ownerKey)];
                 case 3:
-                    // associatedTokenAccount = await createATATokenAndSign(owner, owner, tokenKey)
-                    // associatedTokenAccount2 = await createATATokenAndSign(owner, owner, tokenKey)
-                    associatedTokenAccount2 = _a.sent();
-                    console.log("Token KEY 1: " + tokenKey.publicKey);
+                    // associatedTokenAccountTokenA = await createAssociatedTokenAccountI(owner, owner, addTokenA)
+                    // associatedTokenAccountTokenB = await createAssociatedTokenAccountI(owner, owner, addTokenA)
+                    associatedTokenAccountTokenB = _a.sent();
                     mint_tx = new anchor.web3.Transaction().add(
                     // Use anchor to create an account from the mint key that we created
                     anchor.web3.SystemProgram.createAccount({
                         fromPubkey: ownerKey,
-                        newAccountPubkey: tokenKey.publicKey,
+                        newAccountPubkey: addTokenA.publicKey,
                         space: spl_token_1.MINT_SIZE,
                         programId: spl_token_1.TOKEN_PROGRAM_ID,
                         lamports: lamports,
                     }), 
                     // Fire a transaction to create our mint account that is controlled by our anchor wallet
-                    (0, spl_token_1.createInitializeMintInstruction)(tokenKey.publicKey, 0, ownerKey, ownerKey), 
+                    (0, spl_token_1.createInitializeMintInstruction)(addTokenA.publicKey, 0, ownerKey, ownerKey), 
                     // Create the ATA account that is associated with our mint on our anchor wallet
-                    (0, spl_token_1.createAssociatedTokenAccountInstruction)(ownerKey, associatedTokenAccount, ownerKey, tokenKey.publicKey));
+                    (0, spl_token_1.createAssociatedTokenAccountInstruction)(ownerKey, associatedTokenAccountTokenA, ownerKey, addTokenA.publicKey));
                     mint_tx2 = new anchor.web3.Transaction().add(
                     // Use anchor to create an account from the mint key that we created
                     anchor.web3.SystemProgram.createAccount({
                         fromPubkey: ownerKey,
-                        newAccountPubkey: tokenKey2.publicKey,
+                        newAccountPubkey: addTokenB.publicKey,
                         space: spl_token_1.MINT_SIZE,
                         programId: spl_token_1.TOKEN_PROGRAM_ID,
                         lamports: lamports,
                     }), 
                     // Fire a transaction to create our mint account that is controlled by our anchor wallet
-                    (0, spl_token_1.createInitializeMintInstruction)(tokenKey2.publicKey, 0, ownerKey, ownerKey), 
+                    (0, spl_token_1.createInitializeMintInstruction)(addTokenB.publicKey, 0, ownerKey, ownerKey), 
                     // Create the ATA account that is associated with our mint on our anchor wallet
-                    (0, spl_token_1.createAssociatedTokenAccountInstruction)(ownerKey, associatedTokenAccount2, ownerKey, tokenKey2.publicKey));
+                    (0, spl_token_1.createAssociatedTokenAccountInstruction)(ownerKey, associatedTokenAccountTokenB, ownerKey, addTokenB.publicKey));
                     console.log("TOKEN_PROGRAM_ID: " + spl_token_1.TOKEN_PROGRAM_ID);
-                    return [4 /*yield*/, anchor.AnchorProvider.env().sendAndConfirm(mint_tx, [tokenKey])];
+                    return [4 /*yield*/, anchor.AnchorProvider.env().sendAndConfirm(mint_tx, [addTokenA])];
                 case 4:
                     res = _a.sent();
-                    return [4 /*yield*/, anchor.AnchorProvider.env().sendAndConfirm(mint_tx2, [tokenKey2])];
+                    return [4 /*yield*/, anchor.AnchorProvider.env().sendAndConfirm(mint_tx2, [addTokenB])];
                 case 5:
                     res2 = _a.sent();
                     // console.log("Account: ", res);
-                    // console.log("Token key: ", tokenKey.publicKey.toString());
+                    // console.log("Token key: ", addTokenA.publicKey.toString());
                     // console.log("User: ", ownerKey.toString());
                     // Executes our code to mint our token into our specified ATA
-                    return [4 /*yield*/, program.methods.mintToken(new BN(1000)).accounts({
-                            mint: tokenKey.publicKey,
+                    return [4 /*yield*/, program.methods.mintToken(new BN(1500)).accounts({
+                            mint: addTokenA.publicKey,
                             tokenProgram: spl_token_1.TOKEN_PROGRAM_ID,
-                            tokenAccount: associatedTokenAccount,
+                            tokenAccount: associatedTokenAccountTokenA,
                             authority: ownerKey,
                         }).rpc()];
                 case 6:
                     // console.log("Account: ", res);
-                    // console.log("Token key: ", tokenKey.publicKey.toString());
+                    // console.log("Token key: ", addTokenA.publicKey.toString());
                     // console.log("User: ", ownerKey.toString());
                     // Executes our code to mint our token into our specified ATA
                     _a.sent();
-                    return [4 /*yield*/, program.methods.mintToken(new BN(1000)).accounts({
-                            mint: tokenKey2.publicKey,
+                    return [4 /*yield*/, program.methods.mintToken(new BN(1500)).accounts({
+                            mint: addTokenB.publicKey,
                             tokenProgram: spl_token_1.TOKEN_PROGRAM_ID,
-                            tokenAccount: associatedTokenAccount2,
+                            tokenAccount: associatedTokenAccountTokenB,
                             authority: ownerKey,
                         }).rpc()];
                 case 7:
                     _a.sent();
-                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(associatedTokenAccount)];
+                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(associatedTokenAccountTokenA)];
                 case 8:
                     minted = (_a.sent()).value.data['parsed']['info']['tokenAmount']['amount'];
-                    chai_1.assert.equal(minted, 1000);
-                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(associatedTokenAccount)];
+                    chai_1.assert.equal(minted, 1500);
+                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(associatedTokenAccountTokenA)];
                 case 9:
                     minted2 = (_a.sent()).value.data['parsed']['info']['tokenAmount']['amount'];
-                    chai_1.assert.equal(minted2, 1000);
+                    chai_1.assert.equal(minted2, 1500);
                     return [2 /*return*/];
             }
         });
@@ -178,15 +180,15 @@ describe("Test Mint Token Solana", function () {
                 case 0:
                     myWallet = anchor.AnchorProvider.env().wallet.publicKey;
                     toWallet = anchor.web3.Keypair.generate();
-                    return [4 /*yield*/, (0, spl_token_1.getAssociatedTokenAddress)(tokenKey.publicKey, toWallet.publicKey)];
+                    return [4 /*yield*/, (0, spl_token_1.getAssociatedTokenAddress)(addTokenA.publicKey, toWallet.publicKey)];
                 case 1:
                     toATA = _a.sent();
-                    return [4 /*yield*/, (0, spl_token_1.getAssociatedTokenAddress)(tokenKey.publicKey, otherUser.publicKey)];
+                    return [4 /*yield*/, (0, spl_token_1.getAssociatedTokenAddress)(addTokenA.publicKey, otherUser.publicKey)];
                 case 2:
                     toATAOtherUser = _a.sent();
                     mint_tx = new anchor.web3.Transaction().add(
                     // Create the ATA account that is associated with our To wallet
-                    (0, spl_token_1.createAssociatedTokenAccountInstruction)(myWallet, toATA, toWallet.publicKey, tokenKey.publicKey));
+                    (0, spl_token_1.createAssociatedTokenAccountInstruction)(myWallet, toATA, toWallet.publicKey, addTokenA.publicKey));
                     // Sends and create the transaction
                     return [4 /*yield*/, anchor.AnchorProvider.env().sendAndConfirm(mint_tx, [])];
                 case 3:
@@ -194,12 +196,12 @@ describe("Test Mint Token Solana", function () {
                     _a.sent();
                     return [4 /*yield*/, anchor.AnchorProvider.env().sendAndConfirm(new anchor.web3.Transaction().add(
                         // Create the ATA account that is associated with our To wallet
-                        (0, spl_token_1.createAssociatedTokenAccountInstruction)(myWallet, toATAOtherUser, otherUser.publicKey, tokenKey.publicKey)), [])];
+                        (0, spl_token_1.createAssociatedTokenAccountInstruction)(myWallet, toATAOtherUser, otherUser.publicKey, addTokenA.publicKey)), [])];
                 case 4:
                     _a.sent();
                     accountObject = {
                         tokenProgram: spl_token_1.TOKEN_PROGRAM_ID,
-                        from: associatedTokenAccount,
+                        from: associatedTokenAccountTokenA,
                         fromAuthority: myWallet,
                         to: toATA,
                     };
@@ -211,171 +213,155 @@ describe("Test Mint Token Solana", function () {
                     // console.log("getAssociatedTokenAddress: " + toATAOtherUser)
                     return [4 /*yield*/, program.methods.transferToken(new BN(50)).accounts({
                             tokenProgram: spl_token_1.TOKEN_PROGRAM_ID,
-                            from: associatedTokenAccount,
+                            from: associatedTokenAccountTokenA,
                             fromAuthority: myWallet,
                             to: toATAOtherUser,
                         }).rpc()];
                 case 6:
                     // console.log("getAssociatedTokenAddress: " + toATAOtherUser)
                     _a.sent();
-                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(associatedTokenAccount)];
+                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(associatedTokenAccountTokenA)];
                 case 7:
                     minted = (_a.sent()).value.data;
                     // console.log(minted)
-                    chai_1.assert.equal(minted['parsed']['info']['tokenAmount']['amount'], 940);
+                    chai_1.assert.equal(minted['parsed']['info']['tokenAmount']['amount'], 1440);
                     return [2 /*return*/];
             }
         });
     }); });
     it("Swap Token Solana", function () { return __awaiter(void 0, void 0, void 0, function () {
-        var myWallet, ownerKey, poolWallet, otherWallet, lamports, tokenPoolToken1, tokenPoolToken2, _bf_minted, otherUserATATokenA, mintedOtherA, minted, minted2, minted3, toATAOtherUser1;
+        var myWallet, ownerKey, otherWallet, connection, payer, lamports, rqAirdrop, balanceOtherWallet, rqAirdropPool, balancePool, tokenATAPoolTokenA, tokenATAPoolTokenB, _bf_minted, otherUserATATokenA, otherUserATATokenB, mintedOtherA, minted, minted2, minted3, minted4, rsOtherWalletTokenA, rsOtherWalletTokenB;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     myWallet = anchor.AnchorProvider.env().wallet;
                     ownerKey = myWallet.publicKey;
-                    poolWallet = anchor.web3.Keypair.generate();
                     otherWallet = anchor.web3.Keypair.generate();
+                    connection = program.provider.connection;
+                    payer = anchor.web3.Keypair.generate();
+                    // Wallet that will receive the token 
                     console.log("Admin public key:" + myWallet.publicKey);
                     return [4 /*yield*/, program.provider.connection.getMinimumBalanceForRentExemption(spl_token_1.MINT_SIZE)];
                 case 1:
                     lamports = _a.sent();
-                    return [4 /*yield*/, createATATokenAndSign(myWallet, poolWallet, tokenKey)];
+                    return [4 /*yield*/, program.provider.connection.requestAirdrop(otherWallet.publicKey, 100000000)
+                        // await anchor.AnchorProvider.env().sendAndConfirm(rqAirdrop)
+                    ];
                 case 2:
-                    tokenPoolToken1 = _a.sent();
-                    return [4 /*yield*/, createATATokenAndSign(myWallet, poolWallet, tokenKey2)];
+                    rqAirdrop = _a.sent();
+                    // await anchor.AnchorProvider.env().sendAndConfirm(rqAirdrop)
+                    return [4 /*yield*/, program.provider.connection.confirmTransaction(rqAirdrop)];
                 case 3:
-                    tokenPoolToken2 = _a.sent();
-                    return [4 /*yield*/, program.methods.transferToken(new BN(150)).accounts({
-                            tokenProgram: spl_token_1.TOKEN_PROGRAM_ID,
-                            from: associatedTokenAccount,
-                            fromAuthority: myWallet.publicKey,
-                            to: tokenPoolToken1,
-                        }).rpc()];
-                case 4:
+                    // await anchor.AnchorProvider.env().sendAndConfirm(rqAirdrop)
                     _a.sent();
-                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(tokenPoolToken1)];
+                    return [4 /*yield*/, program.provider.connection.getBalance(otherWallet.publicKey)];
+                case 4:
+                    balanceOtherWallet = _a.sent();
+                    console.log("balanceOtherWallet: " + balanceOtherWallet);
+                    return [4 /*yield*/, program.provider.connection.requestAirdrop(poolWallet.publicKey, 100000000)];
                 case 5:
-                    _bf_minted = (_a.sent()).value.data;
-                    console.log("Pool Token A: " + _bf_minted['parsed']['info']['tokenAmount']['amount']);
-                    return [4 /*yield*/, program.methods.transferToken(new BN(100)).accounts({
-                            tokenProgram: spl_token_1.TOKEN_PROGRAM_ID,
-                            from: associatedTokenAccount2,
-                            fromAuthority: myWallet.publicKey,
-                            to: tokenPoolToken2,
-                        }).rpc()];
+                    rqAirdropPool = _a.sent();
+                    return [4 /*yield*/, program.provider.connection.confirmTransaction(rqAirdropPool)];
                 case 6:
                     _a.sent();
-                    return [4 /*yield*/, createATATokenAndSign(myWallet, otherWallet, tokenKey)
-                        // let a = await anchor.AnchorProvider.env().sendAndConfirm(new anchor.web3.Transaction().add(
-                        // createApproveInstruction(tokenKey.publicKey, poolWallet.publicKey, ownerKey, 1000, [], TOKEN_PROGRAM_ID)
-                        // ), []);
-                        // await myWallet.signTransaction(new anchor.web3.Transaction().add(
-                        //   createApproveInstruction(tokenKey.publicKey, poolWallet.publicKey, ownerKey, 1000, [], TOKEN_PROGRAM_ID)
-                        // ))
-                        // let approve =await anchor.AnchorProvider.env().sendAndConfirm(new anchor.web3.Transaction().add(
-                        //   createApproveInstruction(tokenPoolToken1, associatedTokenAccount, ownerKey, 1000, [], TOKEN_PROGRAM_ID)
-                        // ), []);
-                        // console.log(approve)
-                        // let a = await program.methods.approveToken(new BN(10)).accounts(
-                        //   {
-                        //     tokenProgram: TOKEN_PROGRAM_ID,
-                        //     to: tokenPoolToken1,
-                        //     delegate: associatedTokenAccount,
-                        //     authority: ownerKey,
-                        //   }
-                        // ).rpc();
-                        // console.log(a)
-                        // console.log("Approve !")
-                    ];
+                    return [4 /*yield*/, program.provider.connection.getBalance(poolWallet.publicKey)];
                 case 7:
+                    balancePool = _a.sent();
+                    console.log("balancePool: " + balancePool);
+                    return [4 /*yield*/, createAssociatedTokenAccountInstr(myWallet, poolWallet, addTokenA)];
+                case 8:
+                    tokenATAPoolTokenA = _a.sent();
+                    return [4 /*yield*/, createAssociatedTokenAccountInstr(myWallet, poolWallet, addTokenB)];
+                case 9:
+                    tokenATAPoolTokenB = _a.sent();
+                    return [4 /*yield*/, program.methods.transferToken(new BN(1000)).accounts({
+                            tokenProgram: spl_token_1.TOKEN_PROGRAM_ID,
+                            from: associatedTokenAccountTokenA,
+                            fromAuthority: myWallet.publicKey,
+                            to: tokenATAPoolTokenA,
+                        }).rpc()];
+                case 10:
+                    _a.sent();
+                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(tokenATAPoolTokenA)];
+                case 11:
+                    _bf_minted = (_a.sent()).value.data;
+                    console.log("Before Pool Token A: " + _bf_minted['parsed']['info']['tokenAmount']['amount']);
+                    return [4 /*yield*/, program.methods.transferToken(new BN(1000)).accounts({
+                            tokenProgram: spl_token_1.TOKEN_PROGRAM_ID,
+                            from: associatedTokenAccountTokenB,
+                            fromAuthority: myWallet.publicKey,
+                            to: tokenATAPoolTokenB,
+                        }).rpc()];
+                case 12:
+                    _a.sent();
+                    return [4 /*yield*/, createAssociatedTokenAccountInstr(myWallet, otherWallet, addTokenA)];
+                case 13:
                     otherUserATATokenA = _a.sent();
-                    // let a = await anchor.AnchorProvider.env().sendAndConfirm(new anchor.web3.Transaction().add(
-                    // createApproveInstruction(tokenKey.publicKey, poolWallet.publicKey, ownerKey, 1000, [], TOKEN_PROGRAM_ID)
-                    // ), []);
-                    // await myWallet.signTransaction(new anchor.web3.Transaction().add(
-                    //   createApproveInstruction(tokenKey.publicKey, poolWallet.publicKey, ownerKey, 1000, [], TOKEN_PROGRAM_ID)
-                    // ))
-                    // let approve =await anchor.AnchorProvider.env().sendAndConfirm(new anchor.web3.Transaction().add(
-                    //   createApproveInstruction(tokenPoolToken1, associatedTokenAccount, ownerKey, 1000, [], TOKEN_PROGRAM_ID)
-                    // ), []);
-                    // console.log(approve)
-                    // let a = await program.methods.approveToken(new BN(10)).accounts(
-                    //   {
-                    //     tokenProgram: TOKEN_PROGRAM_ID,
-                    //     to: tokenPoolToken1,
-                    //     delegate: associatedTokenAccount,
-                    //     authority: ownerKey,
-                    //   }
-                    // ).rpc();
-                    // console.log(a)
-                    // console.log("Approve !")
+                    return [4 /*yield*/, createAssociatedTokenAccountInstr(myWallet, otherWallet, addTokenB)];
+                case 14:
+                    otherUserATATokenB = _a.sent();
                     return [4 /*yield*/, program.methods.transferToken(new BN(50)).accounts({
                             tokenProgram: spl_token_1.TOKEN_PROGRAM_ID,
-                            from: tokenPoolToken1,
+                            from: associatedTokenAccountTokenA,
                             fromAuthority: myWallet.publicKey,
                             to: otherUserATATokenA,
                         }).rpc()];
-                case 8:
-                    // let a = await anchor.AnchorProvider.env().sendAndConfirm(new anchor.web3.Transaction().add(
-                    // createApproveInstruction(tokenKey.publicKey, poolWallet.publicKey, ownerKey, 1000, [], TOKEN_PROGRAM_ID)
-                    // ), []);
-                    // await myWallet.signTransaction(new anchor.web3.Transaction().add(
-                    //   createApproveInstruction(tokenKey.publicKey, poolWallet.publicKey, ownerKey, 1000, [], TOKEN_PROGRAM_ID)
-                    // ))
-                    // let approve =await anchor.AnchorProvider.env().sendAndConfirm(new anchor.web3.Transaction().add(
-                    //   createApproveInstruction(tokenPoolToken1, associatedTokenAccount, ownerKey, 1000, [], TOKEN_PROGRAM_ID)
-                    // ), []);
-                    // console.log(approve)
-                    // let a = await program.methods.approveToken(new BN(10)).accounts(
-                    //   {
-                    //     tokenProgram: TOKEN_PROGRAM_ID,
-                    //     to: tokenPoolToken1,
-                    //     delegate: associatedTokenAccount,
-                    //     authority: ownerKey,
-                    //   }
-                    // ).rpc();
-                    // console.log(a)
-                    // console.log("Approve !")
+                case 15:
                     _a.sent();
-                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(tokenPoolToken1)];
-                case 9:
+                    return [4 /*yield*/, program.methods.transferToken(new BN(5)).accounts({
+                            tokenProgram: spl_token_1.TOKEN_PROGRAM_ID,
+                            from: tokenATAPoolTokenA,
+                            fromAuthority: poolWallet.publicKey,
+                            to: associatedTokenAccountTokenA,
+                        }).signers([poolWallet]).rpc()];
+                case 16:
+                    _a.sent();
+                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(tokenATAPoolTokenA)];
+                case 17:
                     mintedOtherA = (_a.sent()).value.data;
                     console.log("otherUserToken Token A: " + mintedOtherA['parsed']['info']['tokenAmount']['amount']);
                     console.log("After transfer from pool A to otherUser");
-                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(tokenPoolToken1)];
-                case 10:
+                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(tokenATAPoolTokenA)];
+                case 18:
                     minted = (_a.sent()).value.data;
                     console.log("Pool Token A: " + minted['parsed']['info']['tokenAmount']['amount']);
-                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(tokenPoolToken2)];
-                case 11:
+                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(tokenATAPoolTokenB)];
+                case 19:
                     minted2 = (_a.sent()).value.data;
                     console.log("Pool Token B: " + minted2['parsed']['info']['tokenAmount']['amount']);
                     return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(otherUserATATokenA)];
-                case 12:
+                case 20:
                     minted3 = (_a.sent()).value.data;
                     console.log("Balance Token A of otherWallet: " + minted3['parsed']['info']['tokenAmount']['amount']);
-                    return [4 /*yield*/, createATATokenAndSign(myWallet, otherWallet, tokenKey)
-                        // const toATAOtherUser2 = await createATATokenAndSign(myWallet, otherWallet, tokenKey2)
-                        // await program.methods.swapToken(new BN(5)).accounts({
-                        //   tokenProgram: TOKEN_PROGRAM_ID,
-                        //   ataPoolTokenA: tokenPoolToken1,
-                        //   ataPoolTokenB: tokenPoolToken2,
-                        //   ataSourceUserA: toATAOtherUser1,
-                        //   ataSourceUserB: toATAOtherUser2,
-                        //   fromAuthority: myWallet.publicKey,
-                        // }).rpc();
-                        // const minted4 = (await program.provider.connection.getParsedAccountInfo(tokenPoolToken1)).value.data;
-                        // console.log("Pool Token A: " + minted4['parsed']['info']['tokenAmount']['amount']);
-                    ];
-                case 13:
-                    toATAOtherUser1 = _a.sent();
+                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(otherUserATATokenB)];
+                case 21:
+                    minted4 = (_a.sent()).value.data;
+                    console.log("Balance Token B of otherWallet: " + minted4['parsed']['info']['tokenAmount']['amount']);
+                    return [4 /*yield*/, program.methods.swapToken(new BN(5)).accounts({
+                            tokenProgram: spl_token_1.TOKEN_PROGRAM_ID,
+                            ataPoolTokenA: tokenATAPoolTokenA,
+                            ataPoolTokenB: tokenATAPoolTokenB,
+                            ataSourceUserA: otherUserATATokenA,
+                            ataSourceUserB: otherUserATATokenB,
+                            fromAuthority: otherWallet.publicKey,
+                            authority: poolWallet.publicKey
+                        }).signers([otherWallet, poolWallet]).rpc()];
+                case 22:
+                    _a.sent();
+                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(otherUserATATokenA)];
+                case 23:
+                    rsOtherWalletTokenA = (_a.sent()).value.data;
+                    console.log("otherUserToken Token A: " + rsOtherWalletTokenA['parsed']['info']['tokenAmount']['amount']);
+                    return [4 /*yield*/, program.provider.connection.getParsedAccountInfo(otherUserATATokenB)];
+                case 24:
+                    rsOtherWalletTokenB = (_a.sent()).value.data;
+                    console.log("otherUserToken Token B: " + rsOtherWalletTokenB['parsed']['info']['tokenAmount']['amount']);
                     return [2 /*return*/];
             }
         });
     }); });
 });
-function createATATokenAndSign(owner, user, token) {
+function createAssociatedTokenAccountInstr(owner, user, token) {
     return __awaiter(this, void 0, void 0, function () {
         var associatedToken;
         return __generator(this, function (_a) {
@@ -383,12 +369,33 @@ function createATATokenAndSign(owner, user, token) {
                 case 0: return [4 /*yield*/, (0, spl_token_1.getAssociatedTokenAddress)(token.publicKey, user.publicKey)];
                 case 1:
                     associatedToken = _a.sent();
-                    return [4 /*yield*/, anchor.AnchorProvider.env().sendAndConfirm(new anchor.web3.Transaction().add(
-                        // Create the ATA account that is associated with our To wallet
-                        (0, spl_token_1.createAssociatedTokenAccountInstruction)(owner.publicKey, associatedToken, user.publicKey, token.publicKey)), [])];
+                    return [4 /*yield*/, anchor.AnchorProvider.env().sendAndConfirm(new anchor.web3.Transaction().add((0, spl_token_1.createAssociatedTokenAccountInstruction)(owner.publicKey, associatedToken, user.publicKey, token.publicKey)), [])];
                 case 2:
                     _a.sent();
                     return [2 /*return*/, associatedToken];
+            }
+        });
+    });
+}
+function mintInstruction(owner, token, lamports) {
+    return __awaiter(this, void 0, void 0, function () {
+        var associatedTokenAccount, mint_tx;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, (0, spl_token_1.getAssociatedTokenAddress)(token.publicKey, owner.publicKey)];
+                case 1:
+                    associatedTokenAccount = _a.sent();
+                    mint_tx = new anchor.web3.Transaction().add(anchor.web3.SystemProgram.createAccount({
+                        fromPubkey: owner.publicKey,
+                        newAccountPubkey: token.publicKey,
+                        space: spl_token_1.MINT_SIZE,
+                        programId: spl_token_1.TOKEN_PROGRAM_ID,
+                        lamports: lamports,
+                    }), (0, spl_token_1.createInitializeMintInstruction)(token.publicKey, 0, owner.publicKey, owner.publicKey), (0, spl_token_1.createAssociatedTokenAccountInstruction)(owner.publicKey, associatedTokenAccount, owner.publicKey, token.publicKey));
+                    return [4 /*yield*/, anchor.AnchorProvider.env().sendAndConfirm(mint_tx, [token.publicKey])];
+                case 2:
+                    _a.sent();
+                    return [2 /*return*/];
             }
         });
     });

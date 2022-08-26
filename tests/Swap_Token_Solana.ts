@@ -31,10 +31,8 @@ describe("Test Mint Token Solana", () => {
   const addTokenB: anchor.web3.Keypair = anchor.web3.Keypair.generate();    
   const poolWallet: anchor.web3.Keypair = anchor.web3.Keypair.generate();
 
-  // AssociatedTokenAccount for anchor's workspace wallet
   let associatedTokenAccountTokenA = undefined;
   let associatedTokenAccountTokenB = undefined;
-  let associatedTokenAccountTokenAToMintPool = undefined;
   it("Mint a token", async () => {
     // Get anchor's wallet's public key
     const owner = anchor.AnchorProvider.env().wallet;
@@ -53,15 +51,11 @@ describe("Test Mint Token Solana", () => {
       addTokenA.publicKey,
       ownerKey
     );
-    // associatedTokenAccountTokenA = await createAssociatedTokenAccountI(owner, owner, addTokenA)
-    // associatedTokenAccountTokenB = await createAssociatedTokenAccountI(owner, owner, addTokenA)
     associatedTokenAccountTokenB = await getAssociatedTokenAddress(
       addTokenB.publicKey,
       ownerKey
     );
 
-    // console.log("Token KEY 1: " + addTokenA.publicKey);
-    // Fires a list of instructions
     const mint_tx = new anchor.web3.Transaction().add(
       // Use anchor to create an account from the mint key that we created
       anchor.web3.SystemProgram.createAccount({
@@ -80,7 +74,6 @@ describe("Test Mint Token Solana", () => {
         ownerKey, associatedTokenAccountTokenA, ownerKey, addTokenA.publicKey
       )
     );
-    // await mintInstruction(owner, addTokenA, lamports)
 
     const mint_tx2 = new anchor.web3.Transaction().add(
       // Use anchor to create an account from the mint key that we created
@@ -103,14 +96,9 @@ describe("Test Mint Token Solana", () => {
     console.log("TOKEN_PROGRAM_ID: " + TOKEN_PROGRAM_ID)
 
     // sends and create the transaction
-    const res = await anchor.AnchorProvider.env().sendAndConfirm(mint_tx, [addTokenA]);
-    const res2 = await anchor.AnchorProvider.env().sendAndConfirm(mint_tx2, [addTokenB]);
+    await anchor.AnchorProvider.env().sendAndConfirm(mint_tx, [addTokenA]);
+    await anchor.AnchorProvider.env().sendAndConfirm(mint_tx2, [addTokenB]);
 
-    // console.log("Account: ", res);
-    // console.log("Token key: ", addTokenA.publicKey.toString());
-    // console.log("User: ", ownerKey.toString());
-
-    // Executes our code to mint our token into our specified ATA
     await program.methods.mintToken(new BN(1500)).accounts({
       mint: addTokenA.publicKey,
       tokenProgram: TOKEN_PROGRAM_ID,
@@ -126,7 +114,6 @@ describe("Test Mint Token Solana", () => {
     }).rpc();
     // Get minted token amount on the ATA for our anchor wallet
 
-    // const minted = (await program.provider.connection.getParsedAccountInfo(associatedTokenAccountTokenA)).value.data.parsed.info.tokenAmount.amount;
     const minted = (await program.provider.connection.getParsedAccountInfo(associatedTokenAccountTokenA)).value.data['parsed']['info']['tokenAmount']['amount'];
     assert.equal(minted, 1500);
     const minted2 = (await program.provider.connection.getParsedAccountInfo(associatedTokenAccountTokenA)).value.data['parsed']['info']['tokenAmount']['amount'];
@@ -175,7 +162,6 @@ describe("Test Mint Token Solana", () => {
     }
     // console.log(accountObject)
     await program.methods.transferToken(new BN(10)).accounts(accountObject).rpc();
-    // console.log("getAssociatedTokenAddress: " + toATAOtherUser)
     await program.methods.transferToken(new BN(50)).accounts({
       tokenProgram: TOKEN_PROGRAM_ID,
       from: associatedTokenAccountTokenA,
@@ -183,15 +169,7 @@ describe("Test Mint Token Solana", () => {
       to: toATAOtherUser,
     }).rpc();
 
-
-
-    // let blTokenFromMintPool = await program.provider.connection.getBalance(addTokenA.publicKey)
-    // console.log("Balance token from mint pool: " + blTokenFromMintPool);
-
-    // Get minted token amount on the ATA for our anchor wallet
-
     const minted = (await program.provider.connection.getParsedAccountInfo(associatedTokenAccountTokenA)).value.data;
-    // console.log(minted)
     assert.equal(minted['parsed']['info']['tokenAmount']['amount'], 1440);
   });
   it("Swap Token Solana", async () => {
@@ -211,7 +189,7 @@ describe("Test Mint Token Solana", () => {
       otherWallet.publicKey,
       100000000
     )
-    // await anchor.AnchorProvider.env().sendAndConfirm(rqAirdrop)
+
     await program.provider.connection.confirmTransaction(rqAirdrop)
 
     let balanceOtherWallet = await program.provider.connection.getBalance(otherWallet.publicKey)
@@ -310,35 +288,4 @@ async function createAssociatedTokenAccountInstr(owner, user, token) {
     )
   ), []);
   return associatedToken
-}
-
-async function mintInstruction(owner, token, lamports){
-  
-  let associatedTokenAccount = await getAssociatedTokenAddress(
-    token.publicKey,
-    owner.publicKey
-  );
-
-  
-
-  const mint_tx = new anchor.web3.Transaction().add(
-    
-    anchor.web3.SystemProgram.createAccount({
-      fromPubkey: owner.publicKey,
-      newAccountPubkey: token.publicKey,
-      space: MINT_SIZE,
-      programId: TOKEN_PROGRAM_ID,
-      lamports,
-    }),
-    
-    createInitializeMintInstruction(
-      token.publicKey, 0, owner.publicKey, owner.publicKey
-    ),
-    
-    createAssociatedTokenAccountInstruction(
-      owner.publicKey, associatedTokenAccount, owner.publicKey, token.publicKey
-    )
-  );
-
-  await anchor.AnchorProvider.env().sendAndConfirm(mint_tx, [token.publicKey]);
 }

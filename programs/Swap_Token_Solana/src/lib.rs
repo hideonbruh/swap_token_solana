@@ -1,19 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token;
 use anchor_spl::token::{Token, MintTo, Transfer, Approve};
-// use crate::{
-//     error::BinaryOptionError,
-//     instruction::BinaryOptionInstruction,
-//     spl_utils::{
-//         spl_approve, spl_burn, spl_burn_signed, spl_initialize, spl_mint_initialize, spl_mint_to,
-//         spl_set_authority, spl_token_transfer, spl_token_transfer_signed,
-//     },
-//     state::BinaryOption,
-//     system_utils::{create_new_account, create_or_allocate_account_raw},
-//     validation_utils::{
-//         assert_initialized, assert_keys_equal, assert_keys_unequal, assert_owned_by,
-//     },
-// };
+
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
@@ -56,6 +44,7 @@ pub mod swap_token_solana {
         Ok(())
     }
 
+    pub fn approve_token(ctx: Context<ApproveToken>, amount_in: u64) -> Result<()>{
         let approve_instruction = Approve{
             to: ctx.accounts.to.to_account_info(),
             delegate: ctx.accounts.delegate.to_account_info(),
@@ -148,33 +137,21 @@ pub struct TransferToken<'info> {
 #[derive(Accounts)]
 pub struct PoolToken<'info> {
     pub token_program: Program<'info, Token>,
-    /// CHECK: The associated token account that we are transferring the token from
+    /// CHECK: The associated token account that we are transferring the token 
     #[account(mut)]
     pub ata_pool_token_a: AccountInfo<'info>,
-    /// CHECK: The associated token account that we are transferring the token from
+    /// CHECK: The associated token account that we are transferring the token 
     #[account(mut)]
     pub ata_pool_token_b: AccountInfo<'info>,
-    /// CHECK: The associated token account that we are transferring the token from
+    /// CHECK: The associated token account that we are transferring the token 
     #[account(mut)]
     pub ata_source_user_a: AccountInfo<'info>,
-    /// CHECK: The associated token account that we are transferring the token to
+    /// CHECK: The associated token account that we are transferring the token 
     #[account(mut)]
     pub ata_source_user_b: AccountInfo<'info>,
     // the authority of the from account 
     pub from_authority: Signer<'info>, 
     pub authority: Signer<'info>,
-}
-
-#[account]
-pub struct Multisig {
-    pub nonce: u8,
-    pub signer_nonce: u8,
-    pub max_user_count: u16,
-    pub owners: Vec<Pubkey>,
-    pub vote_powers: Vec<u16>,
-    pub required_vote: u16,
-    pub total_vote: u16,
-    pub request_id: u32,
 }
 
 
