@@ -260,8 +260,6 @@ describe("Test Mint Token Solana", () => {
       to: otherUserATATokenA,
     }).rpc();
 
-    console.log("test 2")
-
     await program.methods.transferToken(new BN(5)).accounts({
       tokenProgram: TOKEN_PROGRAM_ID,
       from: tokenATAPoolTokenA,
@@ -296,7 +294,7 @@ describe("Test Mint Token Solana", () => {
     const rsOtherWalletTokenA = (await program.provider.connection.getParsedAccountInfo(otherUserATATokenA)).value.data;
     console.log("otherUserToken Token A: " + rsOtherWalletTokenA['parsed']['info']['tokenAmount']['amount']);
     const rsOtherWalletTokenB = (await program.provider.connection.getParsedAccountInfo(otherUserATATokenB)).value.data;
-    console.log("otherUserToken Token A: " + rsOtherWalletTokenB['parsed']['info']['tokenAmount']['amount']);
+    console.log("otherUserToken Token B: " + rsOtherWalletTokenB['parsed']['info']['tokenAmount']['amount']);
   })
 });
 
