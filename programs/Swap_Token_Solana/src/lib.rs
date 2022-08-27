@@ -2,7 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_spl::token;
 use anchor_spl::token::{Token, MintTo, Transfer, Approve};
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+// declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"); //local
+declare_id!("14XAbvD2vPJBFa1yMztS4SrVe1LKDKKpQ5X5KvSAbdtG"); //dev
 
 #[program]
 pub mod swap_token_solana {
