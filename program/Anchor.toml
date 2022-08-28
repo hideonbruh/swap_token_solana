@@ -9,7 +9,7 @@ swap_token_solana = "14XAbvD2vPJBFa1yMztS4SrVe1LKDKKpQ5X5KvSAbdtG"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "/Users/vietle/.config/solana/id.json"
 
 [scripts]
