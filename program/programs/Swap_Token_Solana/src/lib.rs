@@ -1,15 +1,17 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token;
-use anchor_spl::token::{Token, MintTo, Transfer, Approve};
-
+use anchor_spl::token::{Token, MintTo, Mint, Transfer, Approve, TokenAccount, CloseAccount};
+// use spl_token::instruction::AuthorityType;
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"); //local
 // declare_id!("14XAbvD2vPJBFa1yMztS4SrVe1LKDKKpQ5X5KvSAbdtG"); //dev
 
 #[program]
 pub mod swap_token_solana {
     use super::*;
+    const ESCROW_PDA_SEED: &[u8] = b"testSwap";
 
     pub fn mint_token(ctx: Context<MintToken>, amount_in: u64) -> Result<()> {
+
         // Create the MintTo struct for our context
         let cpi_accounts = MintTo {
             mint: ctx.accounts.mint.to_account_info(),
@@ -92,6 +94,29 @@ pub mod swap_token_solana {
         Ok(())
     }    
 
+    pub fn exchange_token(ctx: Context<Exchange>) -> Result<()>{
+        let (_vault_authority, vault_authority_bump) = Pubkey::find_program_address(&[ESCROW_PDA_SEED], ctx.program_id);
+        let authority_seeds = &[&ESCROW_PDA_SEED[..], &[vault_authority_bump]];
+
+        token::transfer(
+            ctx.accounts.into_transfer_to_initializer_context(), 
+            ctx.accounts.escrow_account.taker_amount
+        )?;
+        
+        token::transfer(
+            ctx.accounts.into_transfer_to_taker_context().with_signer(&[&authority_seeds[..]]), 
+            ctx.accounts.escrow_account.initializer_amount
+        )?;
+
+        token::close_account(
+            ctx.accounts
+            .into_close_context()
+            .with_signer(&[&authority_seeds[..]])
+        )?;
+
+        Ok(())
+    }
+
 }
 
 #[derive(Accounts)]
@@ -154,5 +179,4 @@ pub struct PoolToken<'info> {
     pub from_authority: Signer<'info>, 
     pub authority: Signer<'info>,
 }
-
 
