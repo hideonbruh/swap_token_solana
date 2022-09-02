@@ -1,7 +1,7 @@
 [features]
 seeds = false
 [programs.localnet]
-swap_token_solana = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+swap_token_solana = "Cqvte55GwzjWgRiwjvNVRD5kPBUpkV3YFuGwQmPAcd6z"
 [programs.devnet]
 swap_token_solana = "14XAbvD2vPJBFa1yMztS4SrVe1LKDKKpQ5X5KvSAbdtG"
 

@@ -4,7 +4,9 @@ use anchor_spl::token::{Token, MintTo, Mint, Transfer, Approve, TokenAccount, Cl
 use anchor_lang::solana_program::entrypoint::ProgramResult;
 
 use spl_token::instruction::AuthorityType;
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"); //local
+
+declare_id!("Cqvte55GwzjWgRiwjvNVRD5kPBUpkV3YFuGwQmPAcd6z"); //local
+// declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"); //local
 // declare_id!("14XAbvD2vPJBFa1yMztS4SrVe1LKDKKpQ5X5KvSAbdtG"); //dev
 
 
@@ -192,15 +194,19 @@ pub struct PoolToken<'info> {
 
 #[derive(Accounts)]
 pub struct Exchange<'info> {
+    /// CHECK: The associated token account that we are transferring the token 
     pub taker: AccountInfo<'info>,
     pub taker_deposit_token_account: Account<'info, TokenAccount>,
     pub taker_receive_token_account: Account<'info, TokenAccount>,
     pub initializer_deposit_token_account: Account<'info, TokenAccount>,
     pub initializer_receive_token_account: Account<'info, TokenAccount>,
+    /// CHECK: The associated token account that we are transferring the token 
     pub initializer: AccountInfo<'info>,
     pub escrow_account: Box<Account<'info, EscrowAccount>>,
     pub vault_account: Account<'info, TokenAccount>,
+    /// CHECK: The associated token account that we are transferring the token 
     pub vault_authority: AccountInfo<'info>,
+    /// CHECK: The associated token account that we are transferring the token 
     pub token_program: AccountInfo<'info>,
 }
 
@@ -217,6 +223,7 @@ pub struct EscrowAccount {
 #[instruction(vault_account_bump: u8, initializer_amount: u64)]
 pub struct Initialize<'info> {
     #[account(mut, signer)]
+    /// CHECK: The associated token account that we are transferring the token 
     pub initializer: AccountInfo<'info>,
     pub mint: Account<'info, Mint>,
     #[account(
@@ -235,8 +242,10 @@ pub struct Initialize<'info> {
     pub initializer_deposit_token_account: Account<'info, TokenAccount>,
     pub initializer_receive_token_account: Account<'info, TokenAccount>,
     pub escrow_account: Box<Account<'info, EscrowAccount>>,
+    /// CHECK: The associated token account that we are transferring the token 
     pub system_program: AccountInfo<'info>,
     pub rent: Sysvar<'info, Rent>,
+    /// CHECK: The associated token account that we are transferring the token 
     pub token_program: AccountInfo<'info>,
 }
 
