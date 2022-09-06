@@ -240,13 +240,6 @@ describe("Test Mint Token Solana", () => {
       to: otherUserATATokenA,
     }).rpc();
 
-    // await program.methods.transferToken(new BN(5)).accounts({
-    //   tokenProgram: TOKEN_PROGRAM_DEV,
-    //   from: tokenATAPoolTokenA,
-    //   fromAuthority: poolWallet.publicKey,
-    //   to: associatedTokenAccountTokenA,
-    // }).signers([poolWallet]).rpc();
-
     console.log("After transfer from pool A to otherUser")
     const minted = (await program.provider.connection.getParsedAccountInfo(tokenATAPoolTokenA)).value.data;
     console.log("Pool Token A: " + minted['parsed']['info']['tokenAmount']['amount']);
