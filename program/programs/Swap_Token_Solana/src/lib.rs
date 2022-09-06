@@ -1,3 +1,5 @@
+use std::io::SeekFrom;
+
 use anchor_lang::prelude::*;
 use anchor_spl::token;
 use anchor_spl::token::{Token, MintTo, Mint, Transfer, Approve, TokenAccount, CloseAccount, SetAuthority};
@@ -73,33 +75,9 @@ pub mod swap_token_solana {
     pub fn swap_token(ctx: Context<PoolToken>, amount_in: u64) -> Result<()>{
         let fixed_rate = 80;
         let amount_out = amount_in*fixed_rate/100;
-
-        let transfer_instruction = Transfer{
-            from: ctx.accounts.ata_source_user_a.to_account_info(),
-            to: ctx.accounts.ata_pool_token_a.to_account_info(),
-            authority: ctx.accounts.from_authority.to_account_info(),
-        };
-         
-        let cpi_program = ctx.accounts.token_program.to_account_info();
-        // Create the Context for our Transfer request
-        let cpi_ctx = CpiContext::new(cpi_program, transfer_instruction);
-
-        // Execute anchor's helper function to transfer tokens
-        anchor_spl::token::transfer(cpi_ctx, amount_in)?;
-
-        let transfer_instruction2 = Transfer{
-            from: ctx.accounts.ata_pool_token_b.to_account_info(),
-            to: ctx.accounts.ata_source_user_b.to_account_info(),
-            authority: ctx.accounts.authority.to_account_info(),
-        };
-         
-        let cpi_program2 = ctx.accounts.token_program.to_account_info();
-        // Create the Context for our Transfer request
-        let cpi_ctx2 = CpiContext::new(cpi_program2, transfer_instruction2);
-
-        // Execute anchor's helper function to transfer tokens
-        anchor_spl::token::transfer(cpi_ctx2, amount_out)?;
- 
+        
+        token::transfer(ctx.accounts.transfer_from_token_user(), amount_in)?;
+        token::transfer(ctx.accounts.transfer_from_token_pool(), amount_out)?;
         Ok(())
     }    
 
@@ -171,7 +149,8 @@ pub struct TransferToken<'info> {
 
 #[derive(Accounts)]
 pub struct PoolToken<'info> {
-    pub token_program: Program<'info, Token>,
+    /// CHECK: The associated token account that we are transferring the token 
+    pub token_program: AccountInfo<'info>,
     /// CHECK: The associated token account that we are transferring the token 
     #[account(mut)]
     pub ata_pool_token_a: AccountInfo<'info>,
@@ -303,5 +282,24 @@ impl<'info> Exchange<'info> {
             authority: self.vault_authority.clone(),
         };
         CpiContext::new(self.token_program.clone(), cpi_accounts)
+    }
+}
+
+impl <'info> PoolToken<'info> {
+    fn transfer_from_token_user(&self) -> CpiContext<'_,'_,'_, 'info, Transfer<'info>>  {
+        let cpi_account = Transfer {
+            from: self.ata_source_user_a.to_account_info().clone(),
+            to: self.ata_pool_token_a.to_account_info().clone(),
+            authority: self.from_authority.to_account_info().clone()
+        };
+        CpiContext::new(self.token_program.clone(), cpi_account)
+    }
+    fn transfer_from_token_pool(&self) -> CpiContext<'_,'_,'_, 'info, Transfer<'info>>  {
+        let cpi_account = Transfer {
+            from: self.ata_pool_token_b.to_account_info().clone(),
+            to: self.ata_source_user_b.to_account_info().clone(),
+            authority: self.authority.to_account_info().clone()
+        };
+        CpiContext::new(self.token_program.clone(), cpi_account)
     }
 }
