@@ -75,34 +75,25 @@ pub mod swap_token_solana {
     pub fn swap_token(ctx: Context<PoolToken>, amount_in: u64) -> Result<()>{
         let fixed_rate = 80;
         let amount_out = amount_in*fixed_rate/100;
-        
-        token::transfer(ctx.accounts.transfer_from_token_user(), amount_in)?;
-        token::transfer(ctx.accounts.transfer_from_token_pool(), amount_out)?;
-        Ok(())
-    }    
 
-    pub fn exchange_token(ctx: Context<Exchange>) -> Result<()>{
-        let (_vault_authority, vault_authority_bump) = Pubkey::find_program_address(&[ESCROW_PDA_SEED], ctx.program_id);
-        let authority_seeds = &[&ESCROW_PDA_SEED[..], &[vault_authority_bump]];
-
-        token::transfer(
-            ctx.accounts.into_transfer_to_initializer_context(), 
-            ctx.accounts.escrow_account.taker_amount
-        )?;
+        let (_vault_authority, _vault_authority_bump) = Pubkey::find_program_address(&[ESCROW_PDA_SEED], ctx.program_id);
+        let authority_seeds = &[&ESCROW_PDA_SEED[..], &[_vault_authority_bump]];
         
         token::transfer(
-            ctx.accounts.into_transfer_to_taker_context().with_signer(&[&authority_seeds[..]]), 
-            ctx.accounts.escrow_account.initializer_amount
-        )?;
+            ctx.accounts.transfer_from_token_user(), 
+            amount_in)?;
+
+        token::transfer(
+            ctx.accounts.transfer_from_token_pool(), 
+            amount_out)?;
 
         token::close_account(
             ctx.accounts
-            .into_close_context()
-            .with_signer(&[&authority_seeds[..]])
-        )?;
-
+            .close_context_account()
+            .with_signer(&[&authority_seeds[..]]))?;
+            
         Ok(())
-    }
+    }    
 
 }
 
@@ -152,6 +143,8 @@ pub struct PoolToken<'info> {
     /// CHECK: The associated token account that we are transferring the token 
     pub token_program: AccountInfo<'info>,
     /// CHECK: The associated token account that we are transferring the token 
+    pub pool_account: AccountInfo<'info>,
+    /// CHECK: The associated token account that we are transferring the token 
     #[account(mut)]
     pub ata_pool_token_a: AccountInfo<'info>,
     /// CHECK: The associated token account that we are transferring the token 
@@ -163,31 +156,14 @@ pub struct PoolToken<'info> {
     /// CHECK: The associated token account that we are transferring the token 
     #[account(mut)]
     pub ata_source_user_b: AccountInfo<'info>,
-    // the authority of the from account 
-    pub from_authority: Signer<'info>, 
-    pub authority: Signer<'info>,
-}
-
-
-
-
-#[derive(Accounts)]
-pub struct Exchange<'info> {
     /// CHECK: The associated token account that we are transferring the token 
-    pub taker: AccountInfo<'info>,
-    pub taker_deposit_token_account: Account<'info, TokenAccount>,
-    pub taker_receive_token_account: Account<'info, TokenAccount>,
-    pub initializer_deposit_token_account: Account<'info, TokenAccount>,
-    pub initializer_receive_token_account: Account<'info, TokenAccount>,
-    /// CHECK: The associated token account that we are transferring the token 
-    pub initializer: AccountInfo<'info>,
+    pub other_user: AccountInfo<'info>,    
     pub escrow_account: Box<Account<'info, EscrowAccount>>,
     pub vault_account: Account<'info, TokenAccount>,
     /// CHECK: The associated token account that we are transferring the token 
     pub vault_authority: AccountInfo<'info>,
-    /// CHECK: The associated token account that we are transferring the token 
-    pub token_program: AccountInfo<'info>,
 }
+
 
 #[account]
 pub struct EscrowAccount {
@@ -198,108 +174,29 @@ pub struct EscrowAccount {
     pub taker_amount: u64,
 }
 
-#[derive(Accounts)]
-#[instruction(vault_account_bump: u8, initializer_amount: u64)]
-pub struct Initialize<'info> {
-    #[account(mut, signer)]
-    /// CHECK: The associated token account that we are transferring the token 
-    pub initializer: AccountInfo<'info>,
-    pub mint: Account<'info, Mint>,
-    #[account(
-        init,
-        seeds = [b"token-seed".as_ref()],
-        bump,
-        payer = initializer,
-        token::mint = mint,
-        token::authority = initializer,
-    )]
-    pub vault_account: Account<'info, TokenAccount>,
-    #[account(
-        mut,
-        constraint = initializer_deposit_token_account.amount >= initializer_amount
-    )]
-    pub initializer_deposit_token_account: Account<'info, TokenAccount>,
-    pub initializer_receive_token_account: Account<'info, TokenAccount>,
-    pub escrow_account: Box<Account<'info, EscrowAccount>>,
-    /// CHECK: The associated token account that we are transferring the token 
-    pub system_program: AccountInfo<'info>,
-    pub rent: Sysvar<'info, Rent>,
-    /// CHECK: The associated token account that we are transferring the token 
-    pub token_program: AccountInfo<'info>,
-}
-
-impl<'info> Initialize<'info> {
-    fn into_transfer_to_pda_context(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
-        let cpi_accounts = Transfer {
-            from: self
-                .initializer_deposit_token_account
-                .to_account_info()
-                .clone(),
-            to: self.vault_account.to_account_info().clone(),
-            authority: self.initializer.clone(),
-        };
-        CpiContext::new(self.token_program.clone(), cpi_accounts)
-    }
-
-    fn into_set_authority_context(&self) -> CpiContext<'_, '_, '_, 'info, SetAuthority<'info>> {
-        let cpi_accounts = SetAuthority {
-            account_or_mint: self.vault_account.to_account_info().clone(),
-            current_authority: self.initializer.clone(),
-        };
-        CpiContext::new(self.token_program.clone(), cpi_accounts)
-    }
-}
-
-
-impl<'info> Exchange<'info> {
-    fn into_transfer_to_initializer_context(
-        &self,
-    ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
-        let cpi_accounts = Transfer {
-            from: self.taker_deposit_token_account.to_account_info().clone(),
-            to: self
-                .initializer_receive_token_account
-                .to_account_info()
-                .clone(),
-            authority: self.taker.clone(),
-        };
-        CpiContext::new(self.token_program.clone(), cpi_accounts)
-    }
-
-    fn into_transfer_to_taker_context(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
-        let cpi_accounts = Transfer {
-            from: self.vault_account.to_account_info().clone(),
-            to: self.taker_receive_token_account.to_account_info().clone(),
-            authority: self.vault_authority.clone(),
-        };
-        CpiContext::new(self.token_program.clone(), cpi_accounts)
-    }
-
-    fn into_close_context(&self) -> CpiContext<'_, '_, '_, 'info, CloseAccount<'info>> {
-        let cpi_accounts = CloseAccount {
-            account: self.vault_account.to_account_info().clone(),
-            destination: self.initializer.clone(),
-            authority: self.vault_authority.clone(),
-        };
-        CpiContext::new(self.token_program.clone(), cpi_accounts)
-    }
-}
-
 impl <'info> PoolToken<'info> {
     fn transfer_from_token_user(&self) -> CpiContext<'_,'_,'_, 'info, Transfer<'info>>  {
         let cpi_account = Transfer {
             from: self.ata_source_user_a.to_account_info().clone(),
             to: self.ata_pool_token_a.to_account_info().clone(),
-            authority: self.from_authority.to_account_info().clone()
+            authority: self.other_user.to_account_info().clone()
         };
         CpiContext::new(self.token_program.clone(), cpi_account)
     }
     fn transfer_from_token_pool(&self) -> CpiContext<'_,'_,'_, 'info, Transfer<'info>>  {
         let cpi_account = Transfer {
-            from: self.ata_pool_token_b.to_account_info().clone(),
+            from: self.vault_account.to_account_info().clone(),
             to: self.ata_source_user_b.to_account_info().clone(),
-            authority: self.authority.to_account_info().clone()
+            authority: self.vault_authority.to_account_info().clone()
         };
         CpiContext::new(self.token_program.clone(), cpi_account)
+    }
+    fn close_context_account(&self) -> CpiContext<'_,'_,'_, 'info, CloseAccount<'info>>{
+        let cpi_accounts = CloseAccount{
+            account: self.vault_account.to_account_info().clone(),
+            destination: self.other_user.clone(),
+            authority: self.vault_authority.clone(),
+        };
+        CpiContext::new(self.token_program.clone(), cpi_accounts)
     }
 }

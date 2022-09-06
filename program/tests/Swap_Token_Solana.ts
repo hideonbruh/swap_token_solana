@@ -266,8 +266,8 @@ describe("Test Mint Token Solana", () => {
       ataPoolTokenB: tokenATAPoolTokenB,
       ataSourceUserA: otherUserATATokenA,
       ataSourceUserB: otherUserATATokenB,
-      fromAuthority: otherWallet.publicKey,
-      authority: poolWallet.publicKey
+      otherUser: otherWallet.publicKey,
+      poolAccount: poolWallet.publicKey
     }).signers([otherWallet, poolWallet]).rpc();
 
     console.log("After swap wallet otherUserToken:")
